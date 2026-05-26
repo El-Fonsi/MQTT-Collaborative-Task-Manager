@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://your-server-url.com/api/$1"
+      "destination": "https://mqtt-collaborative-task-manager.onrender.com/api/$1"
     }
   ]
 }
