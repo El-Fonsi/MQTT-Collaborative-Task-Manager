@@ -7,6 +7,8 @@ import api from '../lib/api';
 import { useRoomStore, type Room } from '../store/roomStore';
 import { useTaskStore } from '../store/taskStore';
 import { useAuthStore } from '../store/authStore';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://mqtt-collaborative-task-manager.onrender.com';
 import { useMqtt } from '../hooks/useMqtt';
 import { Board } from '../components/Board';
 import { PresenceIndicator } from '../components/PresenceIndicator';
@@ -145,7 +147,7 @@ export function RoomPage() {
           {room.members?.map((m) => (
             <div key={m.user.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
               <div className="flex items-center gap-2">
-                <Avatar src={m.user.avatar} alt={m.user.name} size="sm" color="indigo" radius="xl">
+                <Avatar src={m.user.avatar?.startsWith('/uploads') ? `${API_BASE}${m.user.avatar}` : m.user.avatar} alt={m.user.name} size="sm" color="indigo" radius="xl">
                   {m.user.name.charAt(0).toUpperCase()}
                 </Avatar>
                 <div>

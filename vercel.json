@@ -7,6 +7,10 @@
     {
       "source": "/api/(.*)",
       "destination": "https://mqtt-collaborative-task-manager.onrender.com/api/$1"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "https://mqtt-collaborative-task-manager.onrender.com/uploads/$1"
     }
   ]
 }

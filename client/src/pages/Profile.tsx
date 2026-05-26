@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, TextInput, Text, Avatar, Group } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import { useAuthStore } from '../store/authStore';
 import api from '../lib/api';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://mqtt-collaborative-task-manager.onrender.com';
 
 export function Profile() {
   const { user, token, setAuth, updateUser } = useAuthStore();
@@ -71,7 +71,7 @@ export function Profile() {
         <div className="flex flex-col items-center gap-3">
           <div className="relative cursor-pointer group" onClick={handleAvatarClick}>
             <Avatar
-              src={user?.avatar}
+              src={user?.avatar?.startsWith('/uploads') ? `${API_BASE}${user.avatar}` : user?.avatar}
               alt={user?.name}
               size={96}
               color="indigo"

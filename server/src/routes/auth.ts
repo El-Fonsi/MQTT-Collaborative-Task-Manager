@@ -130,10 +130,10 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), async (req: Auth
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const avatarUrl = `/uploads/${req.file.filename}`;
+    const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
 
     const oldUser = await prisma.user.findUnique({ where: { id: req.userId }, select: { avatar: true } });
-    if (oldUser?.avatar) {
+    if (oldUser?.avatar && !oldUser.avatar.startsWith('http')) {
       const oldPath = path.join(__dirname, '../../', oldUser.avatar);
       if (fs.existsSync(oldPath)) {
         fs.unlinkSync(oldPath);

@@ -11,6 +11,8 @@ interface UserAvatarProps {
 
 const sizeMap = { sm: 28, md: 36, lg: 44 };
 
+const API_BASE = import.meta.env.VITE_API_URL || 'https://mqtt-collaborative-task-manager.onrender.com';
+
 export function UserAvatar({ name, avatar, online, size = 'md', showDot = true }: UserAvatarProps) {
   const initials = (name || '')
     .split(' ')
@@ -19,10 +21,12 @@ export function UserAvatar({ name, avatar, online, size = 'md', showDot = true }
     .toUpperCase()
     .slice(0, 2);
 
+  const avatarSrc = avatar && avatar.startsWith('/uploads') ? `${API_BASE}${avatar}` : avatar;
+
   return (
     <div className="relative inline-flex">
       <Avatar
-        src={avatar}
+        src={avatarSrc}
         alt={name}
         size={sizeMap[size]}
         color="indigo"

@@ -10,5 +10,6 @@ export const config = {
     username: process.env.MQTT_USERNAME || '',
     password: process.env.MQTT_PASSWORD || '',
   },
+  serverUrl: process.env.SERVER_URL || 'http://localhost:4000',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
 };
