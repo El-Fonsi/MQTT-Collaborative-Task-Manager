@@ -30,7 +30,8 @@ export function connectMqtt(): Promise<mqtt.MqttClient> {
       clientId: id,
       clean: true,
       reconnectPeriod: 5000,
-      connectTimeout: 10000,
+      connectTimeout: 30000,
+      protocolVersion: 4,
     });
 
     client.on('connect', () => {
