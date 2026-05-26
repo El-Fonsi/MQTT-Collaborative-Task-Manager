@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownedRooms  Room[]            @relation("RoomOwner")
+  rooms       RoomMember[]
+  tasks       Task[]
+  avatar      String?
+  joinRequests RoomJoinRequest[]
+}
+
+model Room {
+  id        String   @id @default(uuid())
+  name      String
+  inviteCode String  @unique
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner  User          @relation("RoomOwner", fields: [ownerId], references: [id])
+  members RoomMember[]
+  tasks   Task[]
+  joinRequests RoomJoinRequest[]
+}
+
+model RoomMember {
+  id     String @id @default(uuid())
+  userId String
+  roomId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roomId])
+}
+
+model RoomJoinRequest {
+  id        String   @id @default(uuid())
+  userId    String
+  roomId    String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roomId])
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @default("")
+  status      String   @default("todo")
+  priority    String   @default("medium")
+  assigneeId  String?
+  roomId      String
+  order       Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  room     Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  assignee User? @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+}
