@@ -20,6 +20,7 @@ model User {
   tasks       Task[]
   avatar      String?
   joinRequests RoomJoinRequest[]
+  activityLogs ActivityLog[]
 }
 
 model Room {
@@ -34,6 +35,7 @@ model Room {
   members RoomMember[]
   tasks   Task[]
   joinRequests RoomJoinRequest[]
+  activityLogs ActivityLog[]
 }
 
 model RoomMember {
@@ -70,9 +72,24 @@ model Task {
   assigneeId  String?
   roomId      String
   order       Float    @default(0)
+  startDate   DateTime @default(now())
+  deadline    DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   room     Room  @relation(fields: [roomId], references: [id], onDelete: Cascade)
   assignee User? @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  roomId    String
+  userId    String
+  userName  String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -6,6 +6,14 @@ const MQTT_PASSWORD = import.meta.env.VITE_MQTT_PASSWORD || '';
 
 let client: mqtt.MqttClient | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let globalListeners: Array<(topic: string, payload: Buffer) => void> = [];
+
+export function onMessage(fn: (topic: string, payload: Buffer) => void) {
+  globalListeners.push(fn);
+  return () => {
+    globalListeners = globalListeners.filter((l) => l !== fn);
+  };
+}
 
 export function connectMqtt(): Promise<mqtt.MqttClient> {
   return new Promise((resolve, reject) => {
@@ -47,6 +55,12 @@ export function connectMqtt(): Promise<mqtt.MqttClient> {
     client.on('offline', () => {
       console.log('[MQTT] Offline');
       scheduleReconnect();
+    });
+
+    client.on('message', (topic, payload) => {
+      for (const fn of globalListeners) {
+        try { fn(topic, payload); } catch {}
+      }
     });
   });
 }

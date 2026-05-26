@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Text, Title, Button, Tooltip, CopyButton } from '@mantine/core';
+import { Text, Title, Button, Tooltip, CopyButton, Modal, Group, Avatar } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import api from '../lib/api';
 import { useRoomStore, type Room } from '../store/roomStore';
@@ -9,6 +10,7 @@ import { useAuthStore } from '../store/authStore';
 import { useMqtt } from '../hooks/useMqtt';
 import { Board } from '../components/Board';
 import { PresenceIndicator } from '../components/PresenceIndicator';
+import { HistoryPanel } from '../components/HistoryPanel';
 
 export function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -18,6 +20,10 @@ export function RoomPage() {
   const user = useAuthStore((s) => s.user);
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
+  const [membersOpened, { open: openMembers, close: closeMembers }] = useDisclosure(false);
+  const [historyOpened, { open: openHistory, close: closeHistory }] = useDisclosure(false);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<{ id: string; name: string } | null>(null);
 
   useMqtt(roomId || null, user?.id);
 
@@ -36,6 +42,21 @@ export function RoomPage() {
         setLoading(false);
       });
   }, [roomId, setCurrentRoom, navigate]);
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!room) return;
+    setRemoving(memberId);
+    try {
+      await api.delete(`/rooms/${room.id}/members/${memberId}`);
+      setRoom((prev) => prev ? { ...prev, members: prev.members?.filter((m) => m.user.id !== memberId) } : null);
+      notifications.show({ title: 'Removed', message: 'Member removed from room', color: 'green' });
+    } catch {
+      notifications.show({ title: 'Error', message: 'Failed to remove member', color: 'red' });
+    } finally {
+      setRemoving(null);
+      setConfirmRemove(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,6 +115,19 @@ export function RoomPage() {
               )}
             </CopyButton>
 
+            <Button variant="light" size="xs" onClick={openMembers}>
+              <span className="hidden sm:inline mr-1">Members</span>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+            </Button>
+
+            <Button variant="subtle" size="xs" onClick={openHistory}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </Button>
+
             <PresenceIndicator />
 
             {!connected && (
@@ -106,8 +140,59 @@ export function RoomPage() {
         </div>
       </header>
 
+      <Modal opened={membersOpened} onClose={closeMembers} title="Members" size="sm" centered>
+        <div className="space-y-2">
+          {room.members?.map((m) => (
+            <div key={m.user.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+              <div className="flex items-center gap-2">
+                <Avatar src={m.user.avatar} alt={m.user.name} size="sm" color="indigo" radius="xl">
+                  {m.user.name.charAt(0).toUpperCase()}
+                </Avatar>
+                <div>
+                  <Text size="sm" fw={500}>{m.user.name}</Text>
+                  <Text size="xs" c="dimmed">{m.user.email}</Text>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {m.user.id === room.ownerId && (
+                  <Text size="xs" fw={600} c="indigo" className="uppercase tracking-wider">Owner</Text>
+                )}
+                {room.isOwner && m.user.id !== room.ownerId && (
+                  <Button
+                    size="xs"
+                    color="red"
+                    variant="light"
+                    onClick={() => setConfirmRemove({ id: m.user.id, name: m.user.name })}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Modal>
+
+      <Modal opened={!!confirmRemove} onClose={() => setConfirmRemove(null)} title="Remove Member" size="sm" centered>
+        <Text size="sm" mb="lg">
+          Are you sure you want to remove <strong>{confirmRemove?.name}</strong> from this room?
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="subtle" onClick={() => setConfirmRemove(null)}>Cancel</Button>
+          <Button
+            color="red"
+            loading={removing === confirmRemove?.id}
+            onClick={() => confirmRemove && handleRemoveMember(confirmRemove.id)}
+          >
+            Remove
+          </Button>
+        </Group>
+      </Modal>
+
+      <HistoryPanel roomId={room.id} opened={historyOpened} onClose={closeHistory} />
+
       <main className="flex-1 overflow-x-auto p-4 lg:p-6">
-        <Board roomId={room.id} />
+        <Board roomId={room.id} isOwner={!!room.isOwner} members={room.members} />
       </main>
     </div>
   );

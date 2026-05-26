@@ -68,6 +68,7 @@ export function useMqtt(roomId: string | null, userId?: string) {
     return () => {
       mountedRef.current = false;
       setupDone.current = false;
+      useTaskStore.setState({ tasks: [], onlineUsers: [] });
       const client = getClient();
       if (client && roomId) {
         if (userId) {

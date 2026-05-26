@@ -1,14 +1,22 @@
 import { ActionIcon } from '@mantine/core';
+import { useMantineColorScheme } from '@mantine/core';
 import { useUiStore } from '../store/uiStore';
 
 export function ThemeToggle() {
   const { darkMode, toggleDarkMode } = useUiStore();
+  const { setColorScheme } = useMantineColorScheme();
+
+  const handleToggle = () => {
+    const next = !darkMode;
+    setColorScheme(next ? 'dark' : 'light');
+    toggleDarkMode();
+  };
 
   return (
     <ActionIcon
       variant="subtle"
       size="lg"
-      onClick={toggleDarkMode}
+      onClick={handleToggle}
       className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
     >
       {darkMode ? (

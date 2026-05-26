@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, TextInput, Text, Modal, Group } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -9,6 +9,7 @@ import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { UserAvatar } from './UserAvatar';
 import { ThemeToggle } from './ThemeToggle';
+import { onMessage, connectMqtt } from '../lib/mqtt';
 
 export function Sidebar() {
   const { rooms, fetchRooms, joinRequests, fetchJoinRequests, createRoom, requestJoin, approveRequest, declineRequest } = useRoomStore();
@@ -23,6 +24,29 @@ export function Sidebar() {
     fetchRooms();
     fetchJoinRequests();
   }, [fetchRooms, fetchJoinRequests]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let unsub: (() => void) | undefined;
+
+    connectMqtt().then((client) => {
+      client.subscribe(`users/${user.id}/join-request`, { qos: 1 });
+      client.subscribe(`users/${user.id}/join-approval`, { qos: 1 });
+
+      unsub = onMessage((topic, payload) => {
+        if (topic === `users/${user.id}/join-request`) {
+          fetchJoinRequests();
+        }
+        if (topic === `users/${user.id}/join-approval`) {
+          fetchRooms();
+        }
+      });
+    });
+
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [user?.id, fetchJoinRequests, fetchRooms]);
 
   const handleCreate = async () => {
     const name = (document.getElementById('room-name') as HTMLInputElement)?.value;

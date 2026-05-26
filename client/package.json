@@ -13,6 +13,7 @@
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@mantine/core": "^7.14.3",
+    "@mantine/dates": "^7.17.8",
     "@mantine/hooks": "^7.14.3",
     "@mantine/notifications": "^7.14.3",
     "axios": "^1.7.7",

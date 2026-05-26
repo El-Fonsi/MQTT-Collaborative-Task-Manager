@@ -90,6 +90,45 @@ body {
   50% { transform: scale(1.5); opacity: 0; }
 }
 
+.dark .mantine-Modal-content,
+.dark .mantine-Modal-header,
+.dark .mantine-Paper-root[data-modal-content] {
+  background-color: #1e2938 !important;
+}
+
+.dark .mantine-Input-input {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+.dark .mantine-InputWrapper-label {
+  color: #cbd5e1 !important;
+}
+
+.dark .mantine-Modal-title {
+  color: #f1f5f9 !important;
+}
+
+.dark .mantine-Select-dropdown {
+  background-color: #1e2938 !important;
+  border-color: #334155 !important;
+}
+
+.dark .mantine-Select-option {
+  color: #e2e8f0 !important;
+}
+
+.dark .mantine-Select-option[data-hovered] {
+  background-color: #334155 !important;
+}
+
+.dark .mantine-Textarea-input {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

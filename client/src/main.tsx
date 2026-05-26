@@ -6,6 +6,7 @@ import { Notifications } from '@mantine/notifications';
 import App from './App';
 import './index.css';
 import '@mantine/core/styles.css';
+import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
 
 const theme = createTheme({
@@ -22,10 +23,15 @@ const theme = createTheme({
   },
 });
 
+const initialDark = localStorage.getItem('darkMode') === 'true';
+if (initialDark) {
+  document.documentElement.classList.add('dark');
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <MantineProvider theme={theme}>
+      <MantineProvider theme={theme} forceColorScheme={initialDark ? 'dark' : 'light'}>
         <Notifications position="top-right" />
         <App />
       </MantineProvider>

@@ -12,6 +12,12 @@ export function getMqttClient(): mqtt.MqttClient {
   return client;
 }
 
+function logActivity(roomId: string, userId: string, userName: string, action: string, details?: string) {
+  prisma.activityLog.create({
+    data: { roomId, userId, userName, action, details },
+  }).catch((err) => console.error('[MQTT] Log error:', err));
+}
+
 export function connectBroker() {
   client = mqtt.connect(config.mqtt.url, {
     username: config.mqtt.username || undefined,
@@ -60,12 +66,30 @@ export function connectBroker() {
   return client;
 }
 
-async function handleCommand(roomId: string, msg: { action: string; task?: any; taskId?: string }) {
-  const { action, task, taskId } = msg;
+async function canModifyTask(taskId: string, userId: string): Promise<boolean> {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: { room: { select: { ownerId: true } } },
+  });
+  if (!task) return false;
+  if (task.room.ownerId === userId) return true;
+  if (!task.assigneeId) return true;
+  return task.assigneeId === userId;
+}
+
+async function handleCommand(roomId: string, msg: { action: string; task?: any; taskId?: string; userId?: string }) {
+  const { action, task, taskId, userId } = msg;
+
+  let userName = 'Unknown';
+  if (userId) {
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+    if (u) userName = u.name;
+  }
 
   switch (action) {
     case 'create': {
       if (!task?.title) return;
+      if (task.status === 'finalized') return;
       const created = await prisma.task.create({
         data: {
           title: task.title,
@@ -75,9 +99,11 @@ async function handleCommand(roomId: string, msg: { action: string; task?: any; 
           assigneeId: task.assigneeId || null,
           roomId,
           order: Date.now(),
+          deadline: task.deadline ? new Date(task.deadline) : null,
         },
         include: { assignee: { select: { id: true, name: true, avatar: true } } },
       });
+      logActivity(roomId, userId || '', userName, 'task_created', JSON.stringify({ taskId: created.id, title: created.title }));
       await publishFullTaskList(roomId);
       await publishTaskEvent(roomId, created.id, { action: 'create', task: created });
       break;
@@ -85,19 +111,24 @@ async function handleCommand(roomId: string, msg: { action: string; task?: any; 
 
     case 'update': {
       if (!taskId) return;
+      if (!userId || !(await canModifyTask(taskId, userId))) return;
+      const existing = await prisma.task.findUnique({ where: { id: taskId }, select: { status: true } });
+      if (existing?.status === 'finalized') return;
       const data: any = {};
       if (task.title !== undefined) data.title = task.title;
       if (task.description !== undefined) data.description = task.description;
       if (task.status !== undefined) data.status = task.status;
       if (task.priority !== undefined) data.priority = task.priority;
-      data.assigneeId = task.assigneeId !== undefined ? task.assigneeId : null;
+      if (task.assigneeId !== undefined) data.assigneeId = task.assigneeId || null;
       if (task.order !== undefined) data.order = task.order;
+      if (task.deadline !== undefined) data.deadline = task.deadline ? new Date(task.deadline) : null;
 
       const updated = await prisma.task.update({
         where: { id: taskId },
         data,
         include: { assignee: { select: { id: true, name: true, avatar: true } } },
       });
+      logActivity(roomId, userId || '', userName, 'task_updated', JSON.stringify({ taskId, title: updated.title }));
       await publishFullTaskList(roomId);
       await publishTaskEvent(roomId, taskId, { action: 'update', task: updated });
       break;
@@ -105,7 +136,11 @@ async function handleCommand(roomId: string, msg: { action: string; task?: any; 
 
     case 'delete': {
       if (!taskId) return;
+      if (!userId || !(await canModifyTask(taskId, userId))) return;
+      const delTask = await prisma.task.findUnique({ where: { id: taskId }, select: { title: true, status: true } });
+      if (delTask?.status === 'finalized') return;
       await prisma.task.delete({ where: { id: taskId } });
+      logActivity(roomId, userId || '', userName, 'task_deleted', JSON.stringify({ taskId, title: delTask?.title || '' }));
       await publishFullTaskList(roomId);
       await publishTaskEvent(roomId, taskId, { action: 'delete', task: null });
       break;
@@ -113,12 +148,18 @@ async function handleCommand(roomId: string, msg: { action: string; task?: any; 
 
     case 'reorder': {
       if (!task?.tasks) return;
-      for (const t of task.tasks) {
+      if (!userId) return;
+      const reorderTasks = task.tasks as { id: string; order: number; status: string }[];
+      for (const t of reorderTasks) {
+        if (!(await canModifyTask(t.id, userId))) continue;
+        const finalized = await prisma.task.findUnique({ where: { id: t.id }, select: { status: true } });
+        if (finalized?.status === 'finalized') continue;
         await prisma.task.update({
           where: { id: t.id },
           data: { order: t.order, status: t.status },
         });
       }
+      logActivity(roomId, userId || '', userName, 'task_reordered', '{}');
       await publishFullTaskList(roomId);
       break;
     }

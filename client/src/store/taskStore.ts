@@ -11,17 +11,19 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  status: 'todo' | 'in-progress' | 'done';
+  status: 'todo' | 'in-progress' | 'done' | 'finalized';
   priority: 'low' | 'medium' | 'high';
   assigneeId: string | null;
   assignee: Assignee | null;
   roomId: string;
   order: number;
+  startDate: string;
+  deadline: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-type Status = 'todo' | 'in-progress' | 'done';
+type Status = 'todo' | 'in-progress' | 'done' | 'finalized';
 
 interface PresenceUser {
   id: string;
@@ -35,7 +37,7 @@ interface TaskState {
   connected: boolean;
   setTasks: (tasks: Task[]) => void;
   setConnected: (v: boolean) => void;
-  publishCommand: (roomId: string, msg: { action: string; task?: any; taskId?: string }) => void;
+  publishCommand: (roomId: string, msg: { action: string; task?: any; taskId?: string }, userId?: string) => void;
   getTasksByStatus: (status: Status) => Task[];
 }
 
@@ -48,13 +50,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
   setConnected: (connected) => set({ connected }),
 
-  publishCommand: (roomId, msg: { action: string; task?: any; taskId?: string }) => {
+  publishCommand: (roomId, msg: { action: string; task?: any; taskId?: string }, userId?: string) => {
     const client = getClient();
     if (!client?.connected) return;
-    client.publish(`rooms/${roomId}/command`, JSON.stringify(msg), { qos: 1 });
+    client.publish(`rooms/${roomId}/command`, JSON.stringify({ ...msg, userId }), { qos: 1 });
   },
 
-  getTasksByStatus: (status) => {
+  getTasksByStatus: (status: Status) => {
     return get().tasks
       .filter((t) => t.status === status)
       .sort((a, b) => a.order - b.order);
