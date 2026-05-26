@@ -1,6 +1,6 @@
 import mqtt from 'mqtt';
 
-const MQTT_URL = import.meta.env.VITE_MQTT_URL || 'wss://aa7ddfb185e046a88e51c04a1b154971.s1.eu.hivemq.cloud:8884';
+const MQTT_URL = import.meta.env.VITE_MQTT_URL || 'wss://aa7ddfb185e046a88e51c04a1b154971.s1.eu.hivemq.cloud:8884/mqtt';
 const MQTT_USERNAME = import.meta.env.VITE_MQTT_USERNAME || 'Alfonse.203';
 const MQTT_PASSWORD = import.meta.env.VITE_MQTT_PASSWORD || 'Lacambra2003';
 
